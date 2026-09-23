@@ -13,6 +13,6 @@ export async function POST(req:Request){
  try{const bytes=new Uint8Array(await req.arrayBuffer());if(!bytes.length||bytes.length>def.limit)return json({error:`Maximum ${def.kind==='image'?8:50} MB per file`},413);if(!valid(bytes,type))return json({error:'File contents do not match the selected format'},400);
  id=crypto.randomUUID();bucket=req.headers.get('x-media-usage')==='logo'&&def.kind==='image'?'logos':'site-images';await putMedia(bucket,mediaKey(id),bytes,type);
  const sql=database();await sql`INSERT INTO media(id,filename,content_type,size,kind,storage_bucket) VALUES(${id},${name},${type},${bytes.length},${def.kind},${bucket})`;
- const item:MediaItem={id,url:`/api/media/${id}`,kind:def.kind,filename:name,size:bytes.length,contentType:type};const site=await config();site.media.push(item);if(bucket==='logos')site.logoId=id;await saveConfig(site);return json({item,logoId:site.logoId});
- }catch(e){console.error('Upload failed',e);if(id&&bucket)try{await deleteMedia(bucket,mediaKey(id));}catch{}return json({error:'Upload failed. Try a smaller file.'},500);}
+ const item:MediaItem={id,url:`/api/media/${id}`,kind:def.kind,filename:name,size:bytes.length,contentType:type};const site=await config();site.media.push(item);await saveConfig(site);return json({item,logoId:site.logoId});
+ }catch(e){console.error('Upload failed',e);if(id&&bucket){try{await deleteMedia(bucket,mediaKey(id));}catch{}try{await database()`DELETE FROM media WHERE id=${id}`;}catch{}}return json({error:'Upload failed. Try a smaller file.'},500);}
 }
