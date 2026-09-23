@@ -13,6 +13,51 @@ The portfolio, site settings, admin users and sessions, and media metadata use N
 
 ## GitHub and Vercel
 
-Push the extracted source to a GitHub repository. The backend data and uploaded media now live in Neon. The current site build uses Vinext and the Sites Cloudflare runtime to expose environment bindings through `cloudflare:workers`; before Vercel deployment, adapt `lib/neon-db.ts` and `lib/media-storage.ts` to read `process.env`, configure the framework build for Vercel, and set the five environment variables in `.env.example` as Vercel secrets. There are no D1 or R2 data dependencies now.
+Push the extracted source to a GitHub repository. The backend data and uploaded media now live in Neon.
 
-The ZIP contains code and bundled static assets. It does not contain live admin accounts, uploaded media, site settings, Neon database rows, or credentials. Connect the Vercel instance to the same production branch to use the existing content, or run both SQL migrations in `neon-migrations/` on a fresh branch. Change the temporary admin passkey before public launch.
+**Environment configuration is now platform-agnostic.** `lib/neon-db.ts` and `lib/media-storage.ts`
+read `process.env` directly, so the same source builds for Vercel and for the Cloudflare Sites
+runtime (which populates `process.env` from Worker vars/secrets under `nodejs_compat`).
+There are no D1 or R2 data dependencies now.
+
+### Deploying to Vercel
+
+1. Import the repo. Vercel detects Next.js 16 and runs `npm run build` → `next build`.
+2. Set **Node.js Version** to `22.x` (the app requires `>=22.13.0`).
+3. Add the five secrets from `.env.example` under *Project → Settings → Environment Variables*
+   (Production + Preview). See below for where each value comes from.
+4. Redeploy. `/`, `/admin`, and all `/api/*` routes come up; no `vercel.json` is needed.
+
+The Cloudflare/Sites build path is preserved under separate scripts: `npm run dev:sites`,
+`npm run build:sites`, `npm run start:sites`.
+
+### Environment variables
+
+Pull all five in one step from a directory linked to the Neon project:
+
+```bash
+neon env pull --file .env.local
+```
+
+| Variable | Where it comes from | Required for |
+| --- | --- | --- |
+| `DATABASE_URL` | Neon Console → project `noisy-star-45302223` → branch `production` → Connection Details → **pooled** connection string (`postgresql://…-pooler.…neon.tech/…?sslmode=require`) | everything backed by Postgres |
+| `AWS_ACCESS_KEY_ID` | Neon Object Storage credential → `token_id` | media upload / download |
+| `AWS_SECRET_ACCESS_KEY` | Neon Object Storage credential → `s3_secret_access_key` (printed once) | media upload / download |
+| `AWS_ENDPOINT_URL_S3` | Neon Object Storage branch endpoint | media upload / download |
+| `AWS_REGION` | Region of the Neon project — copy the injected value, do not assume `ap-southeast-1` | media upload / download |
+
+**The marketing site renders without any of them.** `app/page.tsx` falls back to `defaultSite`
+in `lib/default-site.ts`, and every API route catches the missing-credential throw and returns a
+clean `503`. So deploying with no env vars still serves the full homepage; the CMS at `/admin`,
+the portfolio, and the media library are what light up once `DATABASE_URL` and the four `AWS_*`
+values are present.
+
+### First-run admin setup
+
+The `users` table starts empty, which puts `/admin` into setup mode. Owner bootstrap is gated on
+the hardcoded `ownerEmail` in `lib/server.ts` plus a temporary passkey in `app/api/admin/route.ts`.
+**Change that passkey before public launch.**
+
+The ZIP contains code and bundled static assets. It does not contain live admin accounts, uploaded media, site settings, Neon database rows, or credentials. Connect the Vercel instance to the same production branch to use the existing content, or run both SQL migrations in `neon-migrations/` on a fresh branch.
+
