@@ -4,33 +4,46 @@ import { fonts, type SiteConfig } from '@/lib/default-site';
 export const dynamic='force-dynamic';
 const emailOk=(s:string)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)&&s.length<255;
 const safe=(s:unknown,max:number)=>typeof s==='string'?s.trim().slice(0,max):'';
+// Passkey-only admin access while the site is being built. No email sign-in.
+// Default 5309 so the team gets easy access; override with ADMIN_PASSKEY env.
+const adminPasskey=()=>process.env.ADMIN_PASSKEY||'5309';
+async function ensureOwner(sql:ReturnType<typeof database>){
+  const rows=await sql`SELECT id,email,role FROM users WHERE role='owner' LIMIT 1`;
+  if(rows[0])return rows[0] as {id:string;email:string;role:string};
+  const salt=randomToken(),id=crypto.randomUUID();
+  await sql`INSERT INTO users(id,email,role,salt,password_hash) VALUES(${id},${ownerEmail},'owner',${salt},${await hashPassword(adminPasskey(),salt)})`;
+  const created=await sql`SELECT id,email,role FROM users WHERE id=${id}`;
+  return created[0] as {id:string;email:string;role:string};
+}
+async function startSession(sql:ReturnType<typeof database>,userId:string){
+  const token=randomToken();
+  await sql`INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(${await digest(token)},${userId},${Date.now()+604800000})`;
+  return token;
+}
 export async function GET(req:Request){try{const user=await session(req);const rows=await database()`SELECT COUNT(*)::int AS n FROM users`;return json({user,setup:rows[0]?.n===0});}catch(e){console.error('Admin load failed',e);return json({error:'Admin is temporarily unavailable'},503);}}
 export async function POST(req:Request){
  if(!originOk(req))return json({error:'Invalid request origin'},403);
  let data:Record<string,unknown>;try{data=await req.json() as Record<string,unknown>;}catch{return json({error:'Invalid request'},400);}
  try{
  const sql=database(),action=String(data.action||'');
- if(action==='setup'){
-   const rows=await sql`SELECT COUNT(*)::int AS n FROM users`;if(rows[0]?.n)return json({error:'Setup has already been completed'},409);
-   const passkey=String(data.passkey||''),expectedPasskey=process.env.ADMIN_PASSKEY||'';
-   if(!expectedPasskey)return json({error:'Owner bootstrap is disabled on this deployment: set the ADMIN_PASSKEY environment variable first'},503);
-   const authEmail=req.headers.get('oai-authenticated-user-email')?.toLowerCase();
-   if((authEmail&&authEmail!==ownerEmail)||String(data.email).toLowerCase()!==ownerEmail||!await secretEqual(passkey,expectedPasskey))return json({error:'Owner email or passkey is incorrect'},403);
-   const salt=randomToken(),id=crypto.randomUUID(),token=randomToken();
-   await sql`INSERT INTO users(id,email,role,salt,password_hash) VALUES(${id},${ownerEmail},'owner',${salt},${await hashPassword(passkey,salt)})`;
-   await sql`INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(${await digest(token)},${id},${Date.now()+604800000})`;
-   return new Response(JSON.stringify({ok:true,user:{id,email:ownerEmail,role:'owner'}}),{headers:{'Content-Type':'application/json','Set-Cookie':cookie(token),'Cache-Control':'no-store'}});
- }
- if(action==='login'){
-   const email=safe(data.email,254).toLowerCase(),pass=String(data.password||'');
-   const attempts=await sql`SELECT failures,window_start FROM login_attempts WHERE email=${email}`;const attempt=attempts[0] as {failures:number;window_start:number}|undefined;
-   if(attempt&&Date.now()-attempt.window_start<900000&&attempt.failures>=5)return json({error:'Too many attempts. Try again in 15 minutes.'},429);
-   const users=await sql`SELECT id,email,role,salt,password_hash FROM users WHERE email=${email}`;const user=users[0] as {id:string;email:string;role:string;salt:string;password_hash:string}|undefined;
-   const actual=await hashPassword(pass,user?.salt||'invalid-salt');
-   if(!user||actual!==user.password_hash){const n=attempt&&Date.now()-attempt.window_start<900000?attempt.failures+1:1;await sql`INSERT INTO login_attempts(email,failures,window_start) VALUES(${email},${n},${n===1?Date.now():attempt!.window_start}) ON CONFLICT(email) DO UPDATE SET failures=excluded.failures,window_start=excluded.window_start`;return json({error:'Email or password is incorrect'},401);}
-   await sql`DELETE FROM login_attempts WHERE email=${email}`;const token=randomToken();await sql`INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(${await digest(token)},${user.id},${Date.now()+604800000})`;
-   return new Response(JSON.stringify({ok:true,user:{id:user.id,email:user.email,role:user.role}}),{headers:{'Content-Type':'application/json','Set-Cookie':cookie(token),'Cache-Control':'no-store'}});
- }
+  if(action==='setup'){
+    const passkey=String(data.passkey||data.password||'');
+    if(!await secretEqual(passkey,adminPasskey()))return json({error:'Passkey is incorrect'},403);
+    const owner=await ensureOwner(sql);
+    const token=await startSession(sql,owner.id);
+    return new Response(JSON.stringify({ok:true,user:{id:owner.id,email:owner.email,role:owner.role}}),{headers:{'Content-Type':'application/json','Set-Cookie':cookie(token),'Cache-Control':'no-store'}});
+  }
+  if(action==='login'){
+    const passkey=String(data.passkey||data.password||'');
+    if(!passkey)return json({error:'Enter the administrator passkey'},400);
+    if(await secretEqual(passkey,adminPasskey())){
+      const owner=await ensureOwner(sql);
+      await sql`DELETE FROM login_attempts WHERE email=${owner.email}`;
+      const token=await startSession(sql,owner.id);
+      return new Response(JSON.stringify({ok:true,user:{id:owner.id,email:owner.email,role:owner.role}}),{headers:{'Content-Type':'application/json','Set-Cookie':cookie(token),'Cache-Control':'no-store'}});
+    }
+    return json({error:'Passkey is incorrect'},401);
+  }
  const user=await requireAdmin(req);if(!user)return json({error:'Sign in required'},401);
  if(action==='logout'){const token=req.headers.get('cookie')?.match(/merqato_admin=([^;]+)/)?.[1];if(token)await sql`DELETE FROM sessions WHERE token_hash=${await digest(token)}`;return new Response(JSON.stringify({ok:true}),{headers:{'Content-Type':'application/json','Set-Cookie':cookie('',0)}});}
  if(action==='change-password'){
