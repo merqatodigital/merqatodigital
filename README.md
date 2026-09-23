@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="merqato-digital/public/favicon.svg" width="120" height="120" alt="Merqato Digital Logo" />
+
 # MERQATO.DIGITAL
 
 ### Your Digital Footprint in the Sand
