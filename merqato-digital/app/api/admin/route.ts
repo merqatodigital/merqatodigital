@@ -1,4 +1,4 @@
-import { config, saveConfig, cookie, digest, hashPassword, json, originOk, ownerEmail, randomToken, requireAdmin, session } from '@/lib/server';
+import { config, saveConfig, cookie, digest, hashPassword, json, originOk, ownerEmail, randomToken, requireAdmin, secretEqual, session } from '@/lib/server';
 import { database } from '@/lib/neon-db';
 import { fonts, type SiteConfig } from '@/lib/default-site';
 export const dynamic='force-dynamic';
@@ -12,9 +12,12 @@ export async function POST(req:Request){
  const sql=database(),action=String(data.action||'');
  if(action==='setup'){
    const rows=await sql`SELECT COUNT(*)::int AS n FROM users`;if(rows[0]?.n)return json({error:'Setup has already been completed'},409);
-   if(req.headers.get('oai-authenticated-user-email')?.toLowerCase()!==ownerEmail || data.email!==ownerEmail || data.passkey!=='5309')return json({error:'Owner email or passkey is incorrect'},403);
+   const passkey=String(data.passkey||''),expectedPasskey=process.env.ADMIN_PASSKEY||'';
+   if(!expectedPasskey)return json({error:'Owner bootstrap is disabled on this deployment: set the ADMIN_PASSKEY environment variable first'},503);
+   const authEmail=req.headers.get('oai-authenticated-user-email')?.toLowerCase();
+   if((authEmail&&authEmail!==ownerEmail)||String(data.email).toLowerCase()!==ownerEmail||!await secretEqual(passkey,expectedPasskey))return json({error:'Owner email or passkey is incorrect'},403);
    const salt=randomToken(),id=crypto.randomUUID(),token=randomToken();
-   await sql`INSERT INTO users(id,email,role,salt,password_hash) VALUES(${id},${ownerEmail},'owner',${salt},${await hashPassword('5309',salt)})`;
+   await sql`INSERT INTO users(id,email,role,salt,password_hash) VALUES(${id},${ownerEmail},'owner',${salt},${await hashPassword(passkey,salt)})`;
    await sql`INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(${await digest(token)},${id},${Date.now()+604800000})`;
    return new Response(JSON.stringify({ok:true,user:{id,email:ownerEmail,role:'owner'}}),{headers:{'Content-Type':'application/json','Set-Cookie':cookie(token),'Cache-Control':'no-store'}});
  }
