@@ -1,12 +1,10 @@
-import { env } from 'cloudflare:workers';
 import { AwsClient } from 'aws4fetch';
 
 function storage(){
- const values=env as unknown as Record<string,string>;
- const endpoint=values.AWS_ENDPOINT_URL_S3||process.env.AWS_ENDPOINT_URL_S3;
- const accessKeyId=values.AWS_ACCESS_KEY_ID||process.env.AWS_ACCESS_KEY_ID;
- const secretAccessKey=values.AWS_SECRET_ACCESS_KEY||process.env.AWS_SECRET_ACCESS_KEY;
- const region=values.AWS_REGION||process.env.AWS_REGION||'ap-southeast-1';
+ const endpoint=process.env.AWS_ENDPOINT_URL_S3;
+ const accessKeyId=process.env.AWS_ACCESS_KEY_ID;
+ const secretAccessKey=process.env.AWS_SECRET_ACCESS_KEY;
+ const region=process.env.AWS_REGION||'ap-southeast-1';
  if(!endpoint||!accessKeyId||!secretAccessKey)throw new Error('Neon storage credentials are missing');
  return {endpoint:endpoint.replace(/\/$/,''),client:new AwsClient({accessKeyId,secretAccessKey,region,service:'s3'})};
 }
