@@ -1,0 +1,15 @@
+export type MediaItem = { id:string; url:string; kind:'image'|'video'; filename:string; size:number; contentType:string };
+export type Section = { id:string; type:'services'|'text'|'media'|'gallery'; label:string; title:string; body:string; items:{ title:string; body:string }[]; mediaIds:string[]; visible:boolean };
+export type SiteConfig = { name:string; descriptor:string; email:string; location:string; logoId:string; heroMediaId:string; heroImage:string; eyebrow:string; headline:string; intro:string; heroButton:string; nav:{label:string; sectionId:string}[]; sections:Section[]; palette:{navy:string;blue:string;ink:string;paper:string;white:string;muted:string}; fonts:{heading:string;body:string}; footer:{headline:string;description:string;copyright:string;links:{label:string;url:string}[]}; media:MediaItem[] };
+export const defaultSite:SiteConfig={
+ name:'Merqato.Digital',descriptor:'DIGITAL STUDIO · PALAWAN',email:'growpalawan@gmail.com',location:'PALAWAN, PHILIPPINES',logoId:'',heroMediaId:'',heroImage:'/assets/hero-palawan.png',eyebrow:'DESIGN · DEVELOPMENT · AUTOMATION',headline:'Local businesses.\nDistinct digital\nworlds.',intro:'We build thoughtful websites and digital systems for ambitious businesses. Rooted in Palawan. Made to work anywhere.',heroButton:'EXPLORE WHAT WE DO',
+ nav:[{label:'Home',sectionId:'top'},{label:'Services',sectionId:'services'},{label:'Approach',sectionId:'approach'},{label:'Projects',sectionId:'projects'},{label:'About us',sectionId:'about'},{label:'Contact',sectionId:'contact'}],
+ sections:[
+ {id:'services',type:'services',label:'01 / WHAT WE DO',title:'What we do',body:'',items:[{title:'Websites',body:'Distinct, responsive sites built around the way your business actually works.'},{title:'Digital systems',body:'Simple tools that bring your content, customers, and daily work together.'},{title:'Automation',body:'Useful workflows that save time and keep people in control.'}],mediaIds:[],visible:true},
+ {id:'approach',type:'text',label:'02 / OUR APPROACH',title:'Good digital work should feel like it belongs to you.',body:'Every business has its own rhythm. We start there, then make something clear, useful, and unmistakably yours.',items:[],mediaIds:[],visible:true},
+ {id:'about',type:'text',label:'03 / THE STUDIO',title:'Small studio.\nBig picture.',body:'Merqato.Digital is a creative technology studio based in Palawan. We pair a strong visual point of view with practical tools that help local businesses grow on their own terms.',items:[],mediaIds:[],visible:true}
+ ],
+ palette:{navy:'#101c31',blue:'#113a70',ink:'#182336',paper:'#f7f8f8',white:'#ffffff',muted:'#a5b3c5'},fonts:{heading:'DM Sans',body:'DM Sans'},
+ footer:{headline:'Let’s make something good.',description:'A small studio for ambitious ideas. Based in Palawan, building for everywhere.',copyright:'© Merqato.Digital',links:[{label:'Email',url:'mailto:growpalawan@gmail.com'},{label:'Back to top',url:'#top'}]},media:[]
+};
+export const fonts=['DM Sans','Inter','Manrope','Space Grotesk','Outfit','Playfair Display','Cormorant Garamond'];
