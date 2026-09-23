@@ -24,8 +24,9 @@ export async function GET(req:Request){try{const user=await session(req);const r
 export async function POST(req:Request){
  if(!originOk(req))return json({error:'Invalid request origin'},403);
  let data:Record<string,unknown>;try{data=await req.json() as Record<string,unknown>;}catch{return json({error:'Invalid request'},400);}
- try{
- const sql=database(),action=String(data.action||'');
+  try{
+  if(!process.env.DATABASE_URL)return json({error:'Database is not connected on this deployment. Set DATABASE_URL in the hosting env vars and redeploy.'},503);
+  const sql=database(),action=String(data.action||'');
   if(action==='setup'){
     const passkey=String(data.passkey||data.password||'');
     if(!await secretEqual(passkey,adminPasskey()))return json({error:'Passkey is incorrect'},403);
@@ -68,6 +69,6 @@ export async function POST(req:Request){
    const mediaIds=new Set(saved.media.map(x=>x.id));if(saved.logoId&&!mediaIds.has(saved.logoId)||saved.heroMediaId&&!mediaIds.has(saved.heroMediaId)||saved.sections.some(x=>x.mediaIds.some(id=>!mediaIds.has(id))))return json({error:'A selected image or video is missing'},400);
    await saveConfig(saved);return json({ok:true});
  }
- return json({error:'Unknown action'},400);
- }catch(e){console.error('Admin operation failed',e);return json({error:'Could not complete that action'},500);}
+  return json({error:'Unknown action'},400);
+  }catch(e){console.error('Admin operation failed',e);const detail=e instanceof Error?e.message:String(e);return json({error:`Could not complete that action (${detail.slice(0,160)})`},500);}
 }
