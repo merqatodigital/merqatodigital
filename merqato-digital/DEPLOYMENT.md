@@ -67,3 +67,31 @@ Users & security. Remove `ADMIN_PASSKEY` from your deployment env after the firs
 
 The ZIP contains code and bundled static assets. It does not contain live admin accounts, uploaded media, site settings, Neon database rows, or credentials. Connect the Vercel instance to the same production branch to use the existing content, or run both SQL migrations in `neon-migrations/` on a fresh branch.
 
+
+## Portfolio & media storage
+
+The portfolio lives in Neon Postgres (`portfolio_projects`) and the image bytes live in
+S3-compatible object storage. Two things must be true for uploads to work:
+
+1. **A writable bucket exists.** `MEDIA_BUCKET` (default `site-images`) receives portfolio and
+   section images; `LOGO_BUCKET` (default `logos`) receives the logo. If a bucket is missing or
+   returns 403/404 the upload automatically retries in the other one, and the failure is reported
+   verbatim in the admin instead of a generic message.
+2. **The schema is current.** Run `neon-migrations/003_portfolio_links.sql` (multi-link support,
+   client/year columns). The app also applies these columns lazily on first use, so a missed
+   migration is self-healing.
+
+Optional seed: `neon-migrations/004_seed_guni_guni.sql`, or click **Import GUNI GUNI starter** in
+the admin Portfolio tab.
+
+### Diagnosing a failed upload
+
+Admin → **Portfolio** → **Test image storage** performs a real write/read/delete round-trip against
+each bucket and reports the database connection, the bucket actually used, and the exact HTTP status
+and body returned by storage on failure.
+
+### Image references
+
+`cover_media_id` and `gallery_media_ids` accept either an uploaded media UUID or a direct path/URL
+such as `/portfolio/guni-guni/cover.png`. Files committed under `public/` therefore render with no
+upload required.

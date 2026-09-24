@@ -30,3 +30,59 @@
 .logo-preview-frame{position:relative;width:240px;height:127px;max-width:100%;overflow:hidden;background:#152238;border-radius:6px;margin:14px 0}
 .logo-preview-frame img{width:100%;height:100%;object-fit:contain;display:block}
 .logo-preview-frame.uncropped-logo img{position:absolute;width:158%;height:auto;max-width:none;left:-38%;top:-100%;object-fit:initial}
+
+/* ---------- Portfolio manager ---------- */
+.head-actions{display:flex;gap:8px;flex-wrap:wrap}
+.portfolio-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:18px}
+.portfolio-toolbar .search{flex:1;min-width:220px;padding:10px 13px;border:1px solid #d3dae1;border-radius:4px;font:inherit;font-size:14px}
+.health-report{margin-top:16px;padding:14px 16px;border-radius:5px;font-size:13px;line-height:1.55;border:1px solid}
+.health-report.ok{background:#f0f8f3;border-color:#bfe0cd;color:#1d5236}
+.health-report.bad{background:#fdf3f2;border-color:#f0c7c2;color:#8a2f25}
+.health-report p{margin:3px 0}
+.health-report code{background:rgba(0,0,0,.07);padding:1px 5px;border-radius:3px}
+.health-hint{margin-top:9px!important;font-style:italic}
+.empty-panel{text-align:center;padding:44px 24px}
+.empty-panel h3{margin:0 0 8px}
+.empty-panel p{margin:0 0 18px;color:#63707d}
+
+.project-panel{padding:0;overflow:hidden}
+.project-head{display:flex;align-items:center;gap:14px;justify-content:space-between;padding:14px 18px;flex-wrap:wrap}
+.project-panel.is-open .project-head{border-bottom:1px solid #e4e9ee;background:#fafbfc}
+.project-title{display:flex;align-items:center;gap:14px;background:none;border:0;padding:0;cursor:pointer;text-align:left;flex:1;min-width:0;font:inherit}
+.project-thumb{width:62px;height:46px;flex-shrink:0;border-radius:3px;overflow:hidden;background:#e8edf2;display:grid;place-items:center;color:#8a97a5;font-size:14px}
+.project-thumb img{width:100%;height:100%;object-fit:cover}
+.project-title-text{min-width:0}
+.project-title-text strong{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.project-title-text small{display:block;color:#78848f;font-size:12px;margin-top:3px}
+.project-flags{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.project-flags button{min-width:34px;height:34px;padding:0 11px;border:1px solid #d3dae1;background:#fff;border-radius:4px;cursor:pointer;font:inherit;font-size:13px}
+.project-flags button:hover:not(:disabled){border-color:#8c99a6}
+.project-flags button:disabled{opacity:.4;cursor:not-allowed}
+.project-body{padding:20px 18px 24px}
+.project-body h3{margin:26px 0 10px;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#5d6b79}
+
+.drop-zone{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:30px 20px;border:2px dashed #c6d0da;border-radius:6px;background:#f8fafb;cursor:pointer;transition:.18s}
+.drop-zone:hover,.drop-zone.is-dropping{border-color:#1b3f6e;background:#eef4fb}
+.drop-zone strong{font-size:15px}
+.drop-zone span{font-size:12.5px;color:#76838f;max-width:520px;line-height:1.5}
+.image-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+.gallery-editor{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin:16px 0 0;padding:0}
+.gallery-editor li{position:relative;border:2px solid #e2e8ee;border-radius:5px;overflow:hidden;background:#f2f5f8}
+.gallery-editor li.is-cover{border-color:#1b3f6e;box-shadow:0 0 0 2px rgba(27,63,110,.14)}
+.gallery-editor img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+.gallery-tools{display:flex;gap:3px;padding:6px;background:#fff;flex-wrap:wrap}
+.gallery-tools button{flex:1;min-width:30px;padding:6px 4px;font:inherit;font-size:11px;border:1px solid #dde3ea;background:#fff;border-radius:3px;cursor:pointer}
+.gallery-tools button:hover:not(:disabled){background:#eef2f6}
+.gallery-tools button:disabled{opacity:.35;cursor:not-allowed}
+.gallery-tools button.danger{color:#a4342a;border-color:#eecbc6}
+
+.portfolio-actions{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-top:28px;padding-top:18px;border-top:1px solid #e4e9ee}
+.action-buttons{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:640px){
+ .project-head{padding:12px}
+ .project-body{padding:16px 12px 20px}
+ .project-flags{width:100%;justify-content:flex-start}
+ .portfolio-actions{flex-direction:column;align-items:stretch}
+ .action-buttons button{flex:1}
+}
