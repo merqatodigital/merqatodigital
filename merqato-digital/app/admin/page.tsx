@@ -1,6 +1,6 @@
 'use client';
 import { useEffect,useState } from 'react';
-import { defaultSite,fonts,type MediaItem,type Section,type SiteConfig } from '@/lib/default-site';
+import { defaultSite,fonts,normalizeSite,type MediaItem,type Section,type SiteConfig } from '@/lib/default-site';
 import PortfolioManager from '@/components/admin/PortfolioManager';
 import { ACCEPT, uploadFiles } from '@/lib/client-upload';
 import './studio.css';
@@ -11,7 +11,7 @@ const area=(label:string,value:string,onChange:(v:string)=>void,rows=3)=><label 
 const check=(label:string,checked:boolean,onChange:(v:boolean)=>void)=><label className="toggle"><input type="checkbox" checked={checked} onChange={e=>onChange(e.target.checked)}/> {label}</label>;
 const statusBadge=(ok:boolean|null,label:string)=>ok===null?<span className="field-hint">{label}</span>:ok?<span className="status-badge ok">✓ {label}</span>:<span className="status-badge bad">✗ {label}</span>;
 export default function Studio(){const [site,setSite]=useState<SiteConfig>(defaultSite),[auth,setAuth]=useState<User|null>(null),[setup,setSetup]=useState(false),[loading,setLoading]=useState(true),[tab,setTab]=useState<(typeof tabs)[number]>(tabs[0]),[password,setPassword]=useState(''),[msg,setMsg]=useState(''),[busy,setBusy]=useState(false),[users,setUsers]=useState<User[]>([]),[current,setCurrent]=useState(''),[next,setNext]=useState(''),[newEmail,setNewEmail]=useState(''),[newPass,setNewPass]=useState(''),[uploading,setUploading]=useState(false),[logoUploadStatus,setLogoUploadStatus]=useState<boolean|null>(null),[logoDirty,setLogoDirty]=useState(false),[savingLogo,setSavingLogo]=useState(false),[logoDetail,setLogoDetail]=useState(''),[logoWidth,setLogoWidth]=useState(200),[logoHeight,setLogoHeight]=useState(100),[dragging,setDragging]=useState(false),[dragStartX,setDragStartX]=useState(0),[dragStartW,setDragStartW]=useState(0);
-useEffect(()=>{Promise.all([fetch('/api/admin').then(r=>r.json() as Promise<any>),fetch('/api/site').then(r=>r.json() as Promise<any>)]).then(([a,s])=>{setAuth(a.user||null);setSetup(!!a.setup);if(s.sections)setSite(s);}).catch(()=>setMsg('Could not load admin. Refresh the page.')).finally(()=>setLoading(false));},[]);
+useEffect(()=>{Promise.all([fetch('/api/admin').then(r=>r.json() as Promise<any>),fetch('/api/site').then(r=>r.json() as Promise<any>)]).then(([a,s])=>{setAuth(a.user||null);setSetup(!!a.setup);if(s&&!s.error)setSite(normalizeSite(s));}).catch(()=>setMsg('Could not load admin. Refresh the page.')).finally(()=>setLoading(false));},[]);
 function edit<K extends keyof SiteConfig>(key:K,value:SiteConfig[K]){setSite(s=>({...s,[key]:value}));}
 function sectionEdit(id:string,patch:Partial<Section>){edit('sections',site.sections.map(s=>s.id===id?{...s,...patch}:s));}
 async function action(action:string,fields:Record<string,unknown>={}){setBusy(true);setMsg('');try{const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...fields})});const d:any=await r.json();if(!r.ok)throw new Error(d.error||'Something went wrong');return d;}catch(e){setMsg((e as Error).message);return null;}finally{setBusy(false);}}

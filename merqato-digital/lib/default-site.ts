@@ -13,3 +13,57 @@ export const defaultSite:SiteConfig={
  footer:{headline:'Let’s make something good.',description:'A small studio for ambitious ideas. Based in Palawan, building for everywhere.',copyright:'© Merqato.Digital',links:[{label:'Email',url:'mailto:growpalawan@gmail.com'},{label:'Back to top',url:'#top'}]},media:[]
 };
 export const fonts=['DM Sans','Inter','Manrope','Space Grotesk','Outfit','Playfair Display','Cormorant Garamond'];
+
+/**
+ * Site config saved by older versions of the studio can be missing whole
+ * branches (footer.links, nav, palette…). Anything that reads the config runs
+ * it through here first so a partial payload degrades to defaults instead of
+ * crashing the page on `.map` of undefined.
+ */
+export function normalizeSite(raw:unknown):SiteConfig{
+ const s=(raw&&typeof raw==='object'?raw:{}) as Partial<SiteConfig>;
+ const str=(v:unknown,f:string)=>typeof v==='string'?v:f;
+ const arr=<T,>(v:unknown,f:T[]):T[]=>Array.isArray(v)?v as T[]:f;
+ const obj=(v:unknown)=>(v&&typeof v==='object'?v as Record<string,unknown>:{});
+ const f=obj(s.footer),p=obj(s.palette),fo=obj(s.fonts);
+ return {
+  name:str(s.name,defaultSite.name),
+  descriptor:str(s.descriptor,defaultSite.descriptor),
+  email:str(s.email,defaultSite.email),
+  location:str(s.location,defaultSite.location),
+  logoId:str(s.logoId,''),
+  heroMediaId:str(s.heroMediaId,''),
+  heroImage:str(s.heroImage,defaultSite.heroImage),
+  eyebrow:str(s.eyebrow,defaultSite.eyebrow),
+  headline:str(s.headline,defaultSite.headline),
+  intro:str(s.intro,defaultSite.intro),
+  heroButton:str(s.heroButton,defaultSite.heroButton),
+  nav:arr(s.nav,defaultSite.nav).filter(n=>n&&typeof n==='object').map(n=>({label:str(n.label,''),sectionId:str(n.sectionId,'top')})),
+  sections:arr(s.sections,defaultSite.sections).filter(x=>x&&typeof x==='object').map(x=>({
+   id:str(x.id,'section'),
+   type:(['services','text','media','gallery'] as const).includes(x.type)?x.type:'text',
+   label:str(x.label,''),title:str(x.title,''),body:str(x.body,''),
+   items:arr<{title?:string;body?:string}>(x.items,[]).filter(i=>i&&typeof i==='object').map(i=>({title:str(i.title,''),body:str(i.body,'')})),
+   mediaIds:arr<string>(x.mediaIds,[]).filter(i=>typeof i==='string'),
+   visible:x.visible!==false,
+  })),
+  palette:{
+   navy:str(p.navy,defaultSite.palette.navy),blue:str(p.blue,defaultSite.palette.blue),
+   ink:str(p.ink,defaultSite.palette.ink),paper:str(p.paper,defaultSite.palette.paper),
+   white:str(p.white,defaultSite.palette.white),muted:str(p.muted,defaultSite.palette.muted),
+  },
+  fonts:{heading:str(fo.heading,defaultSite.fonts.heading),body:str(fo.body,defaultSite.fonts.body)},
+  footer:{
+   headline:str(f.headline,defaultSite.footer.headline),
+   description:str(f.description,defaultSite.footer.description),
+   copyright:str(f.copyright,defaultSite.footer.copyright),
+   links:arr(f.links,defaultSite.footer.links).filter(l=>l&&typeof l==='object').map(l=>({label:str((l as {label?:string}).label,'Link'),url:str((l as {url?:string}).url,'#top')})),
+  },
+  media:arr<Partial<MediaItem>>(s.media,[]).filter(m=>m&&typeof m==='object'&&typeof (m as {id?:string}).id==='string').map(m=>({
+   id:str(m.id,''),url:str(m.url,`/api/media/${str(m.id,'')}`),
+   kind:m.kind==='video'?'video':'image',
+   filename:str(m.filename,'file'),size:typeof m.size==='number'?m.size:0,
+   contentType:str(m.contentType,'image/jpeg'),
+  })),
+ };
+}
