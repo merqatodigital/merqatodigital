@@ -1,10 +1,10 @@
 import { timingSafeEqual } from 'node:crypto';
 import { database } from './neon-db';
-import { defaultSite, type SiteConfig } from './default-site';
+import { defaultSite,normalizeSite, type SiteConfig } from './default-site';
 const enc = new TextEncoder();
 export const ownerEmail='merqato.digital@gmail.com';
 export async function secretEqual(a:string,b:string){const [x,y]=await Promise.all([crypto.subtle.digest('SHA-256',enc.encode(a)),crypto.subtle.digest('SHA-256',enc.encode(b))]);return timingSafeEqual(Buffer.from(x),Buffer.from(y));}
-export async function config():Promise<SiteConfig>{const rows=await database()`SELECT payload FROM site_settings WHERE id=1`;return rows[0]?rows[0].payload as SiteConfig:defaultSite;}
+export async function config():Promise<SiteConfig>{const rows=await database()`SELECT payload FROM site_settings WHERE id=1`;return normalizeSite(rows[0]?rows[0].payload:defaultSite);}
 export async function saveConfig(site:SiteConfig){await database()`INSERT INTO site_settings(id,payload,updated_at) VALUES(1,${JSON.stringify(site)}::jsonb,now()) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at`;}
 export function json(value:unknown,status=200){return Response.json(value,{status,headers:{'Cache-Control':'no-store'}});}
 export function originOk(req:Request){const origin=req.headers.get('origin');return !!origin && new URL(origin).host===new URL(req.url).host;}
