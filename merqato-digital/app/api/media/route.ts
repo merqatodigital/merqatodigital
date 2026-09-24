@@ -64,7 +64,11 @@ export async function POST(req: Request) {
 
   const type = (req.headers.get('content-type') || '').split(';')[0].toLowerCase();
   const def = types[type];
-  const name = (req.headers.get('x-file-name') || 'upload').slice(0, 160);
+  // The client percent-encodes the filename so non-ASCII characters survive the header.
+  const rawName = req.headers.get('x-file-name') || 'upload';
+  let name = rawName;
+  try { name = decodeURIComponent(rawName); } catch { /* not encoded — use as sent */ }
+  name = name.slice(0, 160);
   const usage = req.headers.get('x-media-usage') === 'logo' && def?.kind === 'image' ? 'logo' : 'media';
 
   if (!def) {

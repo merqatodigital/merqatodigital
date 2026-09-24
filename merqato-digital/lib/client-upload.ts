@@ -72,13 +72,20 @@ export async function prepareImage(file: File): Promise<File> {
     : file;
 }
 
+/**
+ * HTTP headers are ByteStrings — anything above char code 255 (em dashes,
+ * accents, emoji, curly quotes in a filename) throws before the request is even
+ * sent. Percent-encode the name and let the server decode it.
+ */
+const encodeFilename = (name: string) => encodeURIComponent(name);
+
 /** Upload one already-prepared file. Throws with the server's message on failure. */
 export async function uploadOne(file: File, usage: 'logo' | 'media' = 'media'): Promise<MediaItem> {
   const res = await fetch('/api/media', {
     method: 'POST',
     headers: {
       'Content-Type': file.type,
-      'X-File-Name': file.name,
+      'X-File-Name': encodeFilename(file.name),
       ...(usage === 'logo' ? { 'X-Media-Usage': 'logo' } : {}),
     },
     body: file,
